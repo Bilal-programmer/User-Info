@@ -1,0 +1,17 @@
+<%- include("partials/header.ejs"); -%>
+
+<h1>Register</h1>
+
+<form action="/" method="post">
+    <input type="text" name="new_username"  placeholder="Username"  required>
+    <input type="password" name="new_password"  placeholder="Password" required> 
+    <input type="password" name="confirm_password"  placeholder="Confirm Password" required>
+    <button type="submit">Register</button>
+</form>
+
+<form action="/login" method="get">
+    <button type="submit">Login</button>
+</form>
+
+
+<%- include("partials/header.ejs"); -%>

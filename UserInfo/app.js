@@ -2,11 +2,13 @@ const express = require("express");
 const bodyparser = require("body-parser");
 const mongoose = require("mongoose");
 const app = express();
+
 require("dotenv").config()
 
+app.set("view engine", 'ejs');
 app.use(bodyparser.urlencoded({extended:true,}));
 
-app.set("view engine", 'ejs');
+
 
 //-------------------------------- Database --------------------------------//
 mongoose.connect("mongodb://localhost:27017/userInfoDB", { useNewUrlParser: true, useUnifiedTopology: true });
@@ -21,7 +23,12 @@ const User = mongoose.model("User", userSchema);
 
 //--------------------------------Register page--------------------------------//
 app.get("/", function(req, res){
-  res.render("register");
+
+  User.find({},function(err, users){
+    if(!err){
+      res.render("register", { users: users })
+    }
+  })
 });
 
 app.post("/", function(req, res){
@@ -29,29 +36,57 @@ app.post("/", function(req, res){
   const password = req.body.new_password;
   const confirm_password = req.body.confirm_password;
 
-
   if(password !== confirm_password){
+
     console.log("error");
     res.redirect("/");
+
   }else {
 
-    const user = new User({
-      username : username,
-      password : password
-    });
-    user.save(function(err){
+    User.findOne({username: username}, function(err, founduser){
       if(!err){
-          res.render("/detail", { username : username });  
+        if(founduser){
+          res.redirect("/login");
+        }else{
+          const user = new User({
+            username : username,
+            password : password
+          });
+          user.save(function(err){
+            if(!err){
+              res.render("user", { user: user });  
+            }
+          })
+        }   
       }
-    });   
+    });
   }
 });
 
 
 //--------------------------------Detail page--------------------------------//
-app.get("/detail", function(req, res){
-  res.render("detail", { username : username })
+app.get("/user/:userID", function (req, res) {
+  const requestedUserId = req.params.userID;
+
+  User.findOne({ _id: requestedUserId }, function (err, founduser) {
+    if(founduser){
+      console.log(founduser)   
+      res.render("user", { user: founduser });
+    }else{
+      res.status(404).json({ error: "No Profile Found" });
+    }  
+  });
 });
+
+app.post("/user/:userID", function(req, res){
+  const requestedUserId = req.params.userID;
+
+  User.findOneAndDelete({ _id: requestedUserId }, function(err){
+    if(!err){
+      res.redirect("/")
+    }
+  } )
+})
 
 
 //--------------------------------Login page--------------------------------//
@@ -63,20 +98,15 @@ app.post("/login", function(req, res){
   const username = req.body.username;
   const password = req.body.password;
 
-  console.log
-
-  User.findOne({username : req.body.username}, function(err, founduser){
+  User.findOne({username : req.body.username,}, function(err, founduser){
     if(!err){
 
       if(founduser){
-        console.log(founduser)
         if(founduser.password ===  req.body.password){
-          console.log(founduser)
-          res.sendFile(__dirname + "/detail", { username : username });
+          res.redirect("user/" + founduser._id); 
         }else{
-          res.redirect("/login");
+          res.redirect("login");
         }
-        res.render("/")
       }
     }
   })
